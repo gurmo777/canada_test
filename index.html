@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Интерактивный гид по жизни в Торонто</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals -->
+    <!-- Application Structure Plan: Cоздана структура из четырех ключевых тематических разделов (бюджет, жилье, поддержка, первые шаги) с навигационной панелью. Такой подход позволяет пользователю нелинейно изучать информацию в зависимости от его приоритетов. Центральный элемент — интерактивный бюджетный дашборд, так как финансовый вопрос является основным в запросе. Он позволяет пользователю "поиграть" с цифрами и мгновенно увидеть результат, что делает планирование более наглядным и личным. Далее идут логические блоки, отвечающие на конкретные вопросы пользователя о жилье и поддержке. Такая структура превращает пассивный отчет в активный инструмент планирования. -->
+    <!-- Visualization & Content Choices: 
+        1. Бюджет (Цель: Информировать, Сравнить): Использован интерактивный дашборд. Основной элемент - диаграмма Donut (Chart.js) для наглядного отображения долей расходов в бюджете. Интерактивные ползунки (HTML/JS) позволяют пользователю менять значения ключевых расходов (аренда, еда) и видеть, как это влияет на остаток средств и диаграмму. Это вовлекает пользователя и дает ему контроль над информацией. Текстовые блоки с расчетами обновляются динамически.
+        2. Жилье (Цель: Организовать, Сравнить): Вместо статического списка используется сеточная структура карточек (Tailwind CSS Grid) для сравнения районов Торонто. Каждая карточка — это структурированный блок информации (цены, плюсы, минусы). Такой формат облегчает визуальное сканирование и сравнение опций.
+        3. Поддержка украинцам (Цель: Информировать): Используются четкие текстовые блоки с акцентными цветами для выделения ключевой информации (особенно статуса программы CUAET). Важная информация о том, что программа изменилась, выделена, чтобы избежать дезинформации. Включена кнопка-ссылка на официальный источник, что является лучшей практикой.
+        4. Первые шаги (Цель: Организовать): Представлено в виде стилизованного пошагового списка (HTML/CSS), что визуально представляет процесс как последовательность действий и облегчает восприятие.
+        Все элементы созданы без использования SVG или Mermaid.js, в строгом соответствии с требованиями. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fdfcfb;
+            color: #1a202c;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .nav-link {
+            transition: color 0.3s, border-bottom-color 0.3s;
+            border-bottom: 2px solid transparent;
+        }
+        .nav-link:hover, .nav-link.active {
+            color: #2b6cb0;
+            border-bottom-color: #2b6cb0;
+        }
+        .slider-thumb::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #2b6cb0;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        .slider-thumb::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #2b6cb0;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="text-xl font-bold text-gray-800">
+                Гид по Торонто
+            </div>
+            <div class="hidden md:flex space-x-8">
+                <a href="#budget" class="nav-link text-gray-600 font-medium pb-1">Бюджет</a>
+                <a href="#housing" class="nav-link text-gray-600 font-medium pb-1">Жилье</a>
+                <a href="#support" class="nav-link text-gray-600 font-medium pb-1">Поддержка</a>
+                <a href="#steps" class="nav-link text-gray-600 font-medium pb-1">Первые шаги</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-6 py-12">
+        <section class="text-center mb-16">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-800 mb-4">Ваш личный план жизни в Торонто</h1>
+            <p class="text-lg text-gray-600 max-w-3xl mx-auto">
+                Этот интерактивный гид поможет вам разобраться в финансах, стоимости жизни и ключевых аспектах переезда в Торонто при годовом доходе в $82,000 CAD. Используйте инструменты ниже, чтобы адаптировать план под себя.
+            </p>
+        </section>
+
+        <!-- Budget Section -->
+        <section id="budget" class="mb-16 scroll-mt-24">
+            <h2 class="text-3xl font-bold text-center mb-2 text-gray-800">Интерактивный бюджет</h2>
+             <p class="text-md text-gray-600 max-w-3xl mx-auto text-center mb-8">
+                Этот раздел посвящен самой важной части вашего переезда — финансам. Здесь вы увидите подробный расчет вашего чистого дохода после уплаты налогов и сможете смоделировать свои ежемесячные расходы. Подвигайте ползунки, чтобы увидеть, как изменение трат на аренду или питание повлияет на ваши сбережения. Диаграмма справа мгновенно обновится, наглядно показывая структуру вашего бюджета.
+            </p>
+            <div class="bg-white p-8 rounded-2xl shadow-lg">
+                <div class="grid md:grid-cols-2 gap-8 md:gap-12">
+                    <div>
+                        <h3 class="text-2xl font-semibold mb-6 text-gray-700">Расчет вашего дохода и расходов</h3>
+                        
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                                <span class="font-medium text-gray-700">Годовой доход (брутто)</span>
+                                <span class="font-bold text-lg text-green-700">$82,000</span>
+                            </div>
+                            <div class="flex justify-between items-center p-3">
+                                <span class="font-medium text-gray-600">Примерные налоги и вычеты (в год)</span>
+                                <span class="font-bold text-red-600">~ -$19,300</span>
+                            </div>
+                            <div class="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                                <span class="font-medium text-gray-700">Чистый доход (в месяц)</span>
+                                <span id="net-income" class="font-bold text-2xl text-green-800">$5,225</span>
+                            </div>
+                        </div>
+
+                        <hr class="my-6">
+                        
+                        <h4 class="text-xl font-semibold mb-4 text-gray-700">Ежемесячные расходы:</h4>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="rent-slider" class="flex justify-between font-medium text-gray-600">Аренда жилья: <span id="rent-value">$2500</span></label>
+                                <input id="rent-slider" type="range" min="2000" max="3500" value="2500" step="50" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-thumb">
+                            </div>
+                            <div>
+                                <label for="food-slider" class="flex justify-between font-medium text-gray-600">Питание: <span id="food-value">$550</span></label>
+                                <input id="food-slider" type="range" min="400" max="800" value="550" step="10" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-thumb">
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 space-y-3">
+                             <div class="flex justify-between"><span class="text-gray-600">Транспорт (TTC Pass):</span> <span class="font-medium">$156</span></div>
+                             <div class="flex justify-between"><span class="text-gray-600">Коммунальные услуги:</span> <span class="font-medium">$70</span></div>
+                             <div class="flex justify-between"><span class="text-gray-600">Интернет и моб. связь:</span> <span class="font-medium">$150</span></div>
+                             <div class="flex justify-between"><span class="text-gray-600">Спортзал:</span> <span class="font-medium">$60</span></div>
+                             <div class="flex justify-between"><span class="text-gray-600">Вейпинг:</span> <span class="font-medium">$120</span></div>
+                             <div class="flex justify-between"><span class="text-gray-600">Страховка жилья:</span> <span class="font-medium">$25</span></div>
+                             <div class="flex justify-between"><span class="text-gray-600">Прочее (досуг, быт):</span> <span class="font-medium">$300</span></div>
+                        </div>
+
+                    </div>
+                    
+                    <div class="flex flex-col items-center justify-center">
+                        <div class="chart-container">
+                            <canvas id="budgetChart"></canvas>
+                        </div>
+                        <div class="mt-8 text-center">
+                             <p class="text-gray-600 text-lg">Общие расходы в месяц:</p>
+                             <p id="total-expenses" class="font-bold text-3xl text-red-700 mb-4">$3931</p>
+                             <p class="text-gray-600 text-lg">Остается на сбережения:</p>
+                             <p id="savings" class="font-bold text-3xl text-green-700">$1294</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Housing Section -->
+        <section id="housing" class="mb-16 scroll-mt-24">
+            <h2 class="text-3xl font-bold text-center mb-2 text-gray-800">Поиск жилья в Торонто</h2>
+            <p class="text-md text-gray-600 max-w-3xl mx-auto text-center mb-8">
+                Аренда — самая большая статья расходов. В этом разделе вы найдете информацию о стоимости и особенностях жилья в разных районах Торонто. Это поможет вам сделать осознанный выбор. Также здесь есть важная информация об услугах риелтора, которые для арендатора в Онтарио бесплатны.
+            </p>
+            <div class="bg-white p-8 rounded-2xl shadow-lg mb-8">
+                <h3 class="text-2xl font-semibold mb-4 text-gray-700">Услуги риелтора: это бесплатно!</h3>
+                <p class="text-gray-600">
+                    В Онтарио комиссию риелтору платит арендодатель (владелец жилья), а не арендатор. Поэтому настоятельно рекомендуется пользоваться услугами риелтора. Он поможет найти подходящие варианты, организовать просмотры, правильно оформить документы и защитит ваши интересы. Для вас его работа будет стоить $0.
+                </p>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h4 class="text-xl font-semibold mb-2 text-blue-800">Downtown Core</h4>
+                    <p class="font-bold text-lg mb-2">$2500 - $3000+</p>
+                    <p class="text-gray-600 text-sm">Центр города, все в пешей доступности. Шумно, дорого, но удобно. Идеально для тех, кто хочет быть в центре событий. В основном это современные кондоминиумы.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h4 class="text-xl font-semibold mb-2 text-blue-800">North York</h4>
+                    <p class="font-bold text-lg mb-2">$2300 - $2700</p>
+                    <p class="text-gray-600 text-sm">Тихий и семейный район с отличным доступом к метро. Много парков и хорошая инфраструктура. Считается одним из самых безопасных и чистых районов города.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h4 class="text-xl font-semibold mb-2 text-blue-800">Etobicoke</h4>
+                    <p class="font-bold text-lg mb-2">$2200 - $2600</p>
+                    <p class="text-gray-600 text-sm">Район на западе города, ближе к аэропорту. Более доступные цены на аренду, много зелени. Транспортное сообщение с центром хорошее, но занимает время.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h4 class="text-xl font-semibold mb-2 text-blue-800">Midtown (Yonge & Eglinton)</h4>
+                    <p class="font-bold text-lg mb-2">$2400 - $2800</p>
+                    <p class="text-gray-600 text-sm">"Второй центр" города. Отличное сочетание офисных зданий, ресторанов и жилых кварталов. Очень популярен среди молодых профессионалов.</p>
+                </div>
+                 <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h4 class="text-xl font-semibold mb-2 text-blue-800">Scarborough</h4>
+                    <p class="font-bold text-lg mb-2">$2100 - $2500</p>
+                    <p class="text-gray-600 text-sm">Большой район на востоке с более доступным жильем. Очень многонациональный, много парков, включая знаменитые Scarborough Bluffs. Требует больше времени на дорогу до центра.</p>
+                </div>
+                 <div class="bg-white p-6 rounded-xl shadow-md">
+                    <h4 class="text-xl font-semibold mb-2 text-blue-800">The Annex / Yorkville</h4>
+                    <p class="font-bold text-lg mb-2">$2600 - $3200+</p>
+                    <p class="text-gray-600 text-sm">Престижные и дорогие районы рядом с университетом и люксовыми бутиками. Красивая архитектура, тихие улочки и высокая стоимость жизни.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Support Section -->
+        <section id="support" class="mb-16 scroll-mt-24">
+            <h2 class="text-3xl font-bold text-center mb-2 text-gray-800">Поддержка для украинцев</h2>
+            <p class="text-md text-gray-600 max-w-3xl mx-auto text-center mb-8">
+                Канада предоставляет значительную поддержку украинцам. В этом разделе собрана ключевая информация о программе CUAET и других важных аспектах, которые помогут вам на начальном этапе. Ситуация может меняться, поэтому всегда проверяйте официальные источники.
+            </p>
+            <div class="bg-white p-8 rounded-2xl shadow-lg">
+                <h3 class="text-2xl font-semibold mb-4 text-yellow-600">Важно: Статус программы CUAET на 2025 год</h3>
+                <p class="text-gray-600 mb-4">
+                    Программа Canada-Ukraine Authorization for Emergency Travel (CUAET), предоставлявшая экстренные визы, **завершила прием заявок из-за рубежа 15 июля 2023 года**. Въезд в Канаду по уже выданным визам CUAET был возможен до 31 марта 2024 года для получения временной поддержки (например, финансовой помощи).
+                </p>
+                <p class="text-gray-600 mb-4">
+                    Это означает, что при планировании переезда на 2025 год вам, скорее всего, придется рассматривать стандартные иммиграционные программы или рабочие визы. Однако обладатели визы CUAET, уже находящиеся в Канаде, имеют возможность продлить свое пребывание и разрешение на работу.
+                </p>
+                <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-r-lg" role="alert">
+                    <p class="font-bold">Всегда проверяйте актуальную информацию!</p>
+                    <p>Иммиграционная политика может меняться. Посетите официальный сайт правительства Канады для получения самой свежей информации о программах для украинцев.</p>
+                    <a href="https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/ukraine-measures.html" target="_blank" class="inline-block bg-blue-600 text-white font-bold py-2 px-4 rounded mt-3 hover:bg-blue-700 transition">
+                        Перейти на сайт IRCC
+                    </a>
+                </div>
+                
+                <h3 class="text-2xl font-semibold mt-8 mb-4 text-gray-700">Основные льготы (при наличии соответствующего статуса):</h3>
+                <ul class="list-disc list-inside space-y-2 text-gray-600">
+                    <li><b>Разрешение на работу:</b> По прибытии вы можете подать заявление на открытое разрешение на работу (Open Work Permit), которое позволяет работать на любого работодателя в Канаде.</li>
+                    <li><b>Медицинская страховка (OHIP):</b> В Онтарио украинцы по CUAET и другим программам могут получить доступ к провинциальной системе здравоохранения (OHIP) без обычного 3-месячного периода ожидания.</li>
+                    <li><b>Помощь в адаптации:</b> Существуют многочисленные общественные организации (например, Ukrainian Canadian Congress), которые оказывают бесплатную помощь новоприбывшим: поиск жилья, оформление документов, языковые курсы и т.д.</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- First Steps Section -->
+        <section id="steps" class="scroll-mt-24">
+            <h2 class="text-3xl font-bold text-center mb-2 text-gray-800">Ваши первые шаги в Торонто</h2>
+            <p class="text-md text-gray-600 max-w-3xl mx-auto text-center mb-8">
+                Переезд в новую страну — это много задач. Этот пошаговый план поможет вам сориентироваться в первые дни и недели после прибытия, чтобы процесс прошел как можно более гладко.
+            </p>
+             <div class="bg-white p-8 rounded-2xl shadow-lg">
+                <div class="space-y-6">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-xl">1</div>
+                        <div class="ml-4">
+                            <h4 class="text-xl font-semibold text-gray-800">Оформить Social Insurance Number (SIN)</h4>
+                            <p class="text-gray-600">SIN — это ваш уникальный номер для работы в Канаде и получения государственных услуг. Вы должны получить его в первую очередь. Это можно сделать онлайн или в офисе Service Canada.</p>
+                        </div>
+                    </div>
+                     <div class="flex items-start">
+                        <div class="flex-shrink-0 w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-xl">2</div>
+                        <div class="ml-4">
+                            <h4 class="text-xl font-semibold text-gray-800">Открыть счет в банке</h4>
+                            <p class="text-gray-600">Вам понадобится счет для получения зарплаты и оплаты счетов. Многие банки (RBC, TD, CIBC, Scotiabank, BMO) предлагают специальные пакеты для новоприбывших без комиссий на первый год.</p>
+                        </div>
+                    </div>
+                     <div class="flex items-start">
+                        <div class="flex-shrink-0 w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-xl">3</div>
+                        <div class="ml-4">
+                            <h4 class="text-xl font-semibold text-gray-800">Подать заявку на OHIP</h4>
+                            <p class="text-gray-600">Это ваша карта медицинского страхования в Онтарио. Подайте на нее заявку как можно скорее в офисе Service Ontario, чтобы иметь доступ к бесплатным медицинским услугам.</p>
+                        </div>
+                    </div>
+                     <div class="flex items-start">
+                        <div class="flex-shrink-0 w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-xl">4</div>
+                        <div class="ml-4">
+                            <h4 class="text-xl font-semibold text-gray-800">Купить Presto Card</h4>
+                            <p class="text-gray-600">Это единая карта для оплаты проезда в общественном транспорте Торонто (TTC) и окрестностей. Ее можно купить и пополнять на станциях метро или в аптеках Shoppers Drug Mart.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <footer class="bg-gray-800 text-white mt-16">
+        <div class="container mx-auto px-6 py-4 text-center">
+            <p>&copy; 2024 Интерактивный гид по Торонто. Информация носит ознакомительный характер.</p>
+        </div>
+    </footer>
+
+<script>
+    const initialData = {
+        grossIncome: 82000,
+        taxes: 19300,
+        rent: 2500,
+        food: 550,
+        transport: 156,
+        utilities: 70,
+        internet: 150,
+        gym: 60,
+        vaping: 120,
+        insurance: 25,
+        misc: 300,
+    };
+
+    let budgetData = { ...initialData };
+
+    const rentSlider = document.getElementById('rent-slider');
+    const foodSlider = document.getElementById('food-slider');
+    const rentValue = document.getElementById('rent-value');
+    const foodValue = document.getElementById('food-value');
+    const netIncomeEl = document.getElementById('net-income');
+    const totalExpensesEl = document.getElementById('total-expenses');
+    const savingsEl = document.getElementById('savings');
+    
+    const ctx = document.getElementById('budgetChart').getContext('2d');
+    let budgetChart;
+
+    function calculateBudget() {
+        const netMonthlyIncome = (budgetData.grossIncome - budgetData.taxes) / 12;
+        const totalExpenses = 
+            budgetData.rent + 
+            budgetData.food +
+            budgetData.transport +
+            budgetData.utilities +
+            budgetData.internet +
+            budgetData.gym +
+            budgetData.vaping +
+            budgetData.insurance +
+            budgetData.misc;
+        const savings = netMonthlyIncome - totalExpenses;
+
+        return { netMonthlyIncome, totalExpenses, savings };
+    }
+
+    function updateUI() {
+        const { netMonthlyIncome, totalExpenses, savings } = calculateBudget();
+        
+        netIncomeEl.textContent = `$${Math.round(netMonthlyIncome).toLocaleString()}`;
+        rentValue.textContent = `$${budgetData.rent}`;
+        foodValue.textContent = `$${budgetData.food}`;
+        totalExpensesEl.textContent = `$${Math.round(totalExpenses).toLocaleString()}`;
+        savingsEl.textContent = `$${Math.round(savings).toLocaleString()}`;
+
+        updateChart();
+    }
+    
+    function createChart() {
+        const { savings } = calculateBudget();
+
+        budgetChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Аренда', 'Питание', 'Транспорт', 'Прочие расходы', 'Сбережения'],
+                datasets: [{
+                    data: [
+                        budgetData.rent, 
+                        budgetData.food, 
+                        budgetData.transport,
+                        budgetData.utilities + budgetData.internet + budgetData.gym + budgetData.vaping + budgetData.insurance + budgetData.misc,
+                        Math.max(0, savings)
+                    ],
+                    backgroundColor: ['#3182ce', '#63b3ed', '#90cdf4', '#bee3f8', '#2f855a'],
+                    borderColor: '#fdfcfb',
+                    borderWidth: 4,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '60%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                           font: {
+                                size: 12,
+                                family: "'Inter', sans-serif"
+                           },
+                           color: '#4a5568',
+                           padding: 15
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed !== null) {
+                                    label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'CAD' }).format(context.parsed);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function updateChart() {
+        const { savings } = calculateBudget();
+        budgetChart.data.datasets[0].data = [
+            budgetData.rent, 
+            budgetData.food, 
+            budgetData.transport,
+            budgetData.utilities + budgetData.internet + budgetData.gym + budgetData.vaping + budgetData.insurance + budgetData.misc,
+            Math.max(0, savings)
+        ];
+        budgetChart.update();
+    }
+
+    rentSlider.addEventListener('input', (e) => {
+        budgetData.rent = parseInt(e.target.value, 10);
+        updateUI();
+    });
+
+    foodSlider.addEventListener('input', (e) => {
+        budgetData.food = parseInt(e.target.value, 10);
+        updateUI();
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        createChart();
+        updateUI();
+        
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sections = document.querySelectorAll('main section');
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    navLinks.forEach(link => {
+                        link.classList.remove('active');
+                        if (link.getAttribute('href').substring(1) === entry.target.id) {
+                            link.classList.add('active');
+                        }
+                    });
+                }
+            });
+        }, { threshold: 0.5 });
+
+        sections.forEach(section => {
+            observer.observe(section);
+        });
+        
+        navLinks.forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+
+    });
+</script>
+
+</body>
+</html>
+
